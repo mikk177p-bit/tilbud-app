@@ -1,4 +1,4 @@
-﻿// Offline-først: alt i appen caches ved første besøg. Hæv VERSION, når filer ændres.
+// Offline-først: alt i appen caches ved første besøg. Hæv VERSION, når filer ændres.
 const VERSION = 'tomrer-v2';
 const FILES = [
   './', 'index.html', 'materialer.html', 'indkoebsliste.html', 'korsel.html', 'regler.html',
