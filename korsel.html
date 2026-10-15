@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3B2A1E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tømrer">
+<title>Kørsel — Kalles Tømrerfirma</title>
+<style>
+  :root { --walnut:#3B2A1E; --cream:#F4E9D8; --rust:#B5652D; --ink:#2a2118; --ink-dim:#6b5d4f; --line:#ddd0ba; --bg:#faf6ef; --card:#fff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--walnut); color:var(--cream); padding:18px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  header h1 { margin:0; font-size:20px; font-weight:700; }
+  header div { display:flex; gap:10px; flex-wrap:wrap; }
+  header a { color:var(--cream); font-size:13px; text-decoration:none; border:1px solid rgba(244,233,216,0.4); padding:6px 12px; border-radius:5px; }
+  header a:hover { background:rgba(244,233,216,0.12); }
+  .wrap { max-width:640px; margin:0 auto; padding:24px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:22px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+  label { display:block; font-size:12.5px; color:var(--ink-dim); margin:0 0 4px; }
+  input { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:5px; font-size:14px; font-family:inherit; }
+  .hint { font-size:11px; color:var(--ink-dim); margin-top:3px; }
+  .result { margin-top:22px; border-top:1px solid var(--line); padding-top:16px; display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .result .km { color:var(--ink-dim); font-size:13.5px; }
+  .result .total { font-size:24px; font-weight:700; color:var(--walnut); font-variant-numeric:tabular-nums; }
+  .send-btn { margin-top:14px; background:var(--rust); color:#fff; border:none; border-radius:6px; padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; }
+  .send-btn:hover { background:#a1571f; }
+  #status { margin-left:10px; font-size:12.5px; color:var(--ink-dim); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kørsel</h1>
+  <div>
+    <a href="materialer.html">Materialeberegner →</a>
+    <a href="regler.html">Tømrerregler →</a>
+    <a href="index.html">← Tilbage til tilbud</a>
+  </div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <div class="grid">
+      <div><label>Afstand til byggepladsen (én vej)</label><input type="number" step="any" id="afstand" value="20"><div class="hint">km fra værksted/hjem — hjemturen regnes automatisk med</div></div>
+      <div><label>Antal ture</label><input type="number" step="any" id="ture" value="1"><div class="hint">fx én pr. arbejdsdag på opgaven</div></div>
+      <div><label>Sats pr. km</label><input type="number" step="any" id="sats" value="5" placeholder="kr."><div class="hint">kr./km</div></div>
+    </div>
+    <div class="result">
+      <div class="km" id="km"></div>
+      <div class="total" id="total"></div>
+    </div>
+    <button class="send-btn" id="send">→ Tilbud</button><span id="status"></span>
+  </div>
+</div>
+<script>
+const fmt = n => n.toLocaleString('da-DK', { maximumFractionDigits: 2 });
+const val = id => parseFloat(document.getElementById(id).value) || 0;
+function calc() {
+  const perTur = val('afstand') * 2;
+  const km = perTur * val('ture');
+  const total = km * val('sats');
+  document.getElementById('km').textContent =
+    `${fmt(perTur)} km pr. tur (tur/retur) × ${fmt(val('ture'))} tur(e) = ${fmt(km)} km i alt`;
+  document.getElementById('total').textContent = `${fmt(total)} kr.`;
+  return { km, total };
+}
+['afstand', 'ture', 'sats'].forEach(id => document.getElementById(id).addEventListener('input', calc));
+document.getElementById('send').onclick = () => {
+  const { km, total } = calc();
+  if (!total) { document.getElementById('status').textContent = 'Udfyld afstand og antal ture først.'; return; }
+  localStorage.setItem('pendingTilbudLine', JSON.stringify({
+    desc: `Kørsel — ${fmt(km)} km — i alt ${fmt(total)} kr.`,
+    price: Math.round(total * 100) / 100,
+  }));
+  window.location.href = 'index.html';
+};
+calc();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
+</html>

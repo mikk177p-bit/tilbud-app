@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3B2A1E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tømrer">
+<title>Materialeberegner — Kalles Tømrerfirma</title>
+<style>
+  :root {
+    --walnut: #3B2A1E;
+    --cream: #F4E9D8;
+    --rust: #B5652D;
+    --ink: #2a2118;
+    --ink-dim: #6b5d4f;
+    --line: #ddd0ba;
+    --bg: #faf6ef;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header {
+    background: var(--walnut); color: var(--cream); padding: 18px 24px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+  }
+  header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  header a { color: var(--cream); font-size: 13px; text-decoration: none; border: 1px solid rgba(244,233,216,0.4); padding: 6px 12px; border-radius: 5px; }
+  header a:hover { background: rgba(244,233,216,0.12); }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px; }
+
+  .disclaimer {
+    background: #fbf2e4; border: 1px solid #e8d2a6; color: #6b5323;
+    border-radius: 7px; font-size: 13px; margin-bottom: 22px; line-height: 1.5;
+  }
+  .disclaimer b { color: #4a3a18; }
+  .disclaimer summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; color: #4a3a18;
+    list-style: none;
+  }
+  .disclaimer summary::-webkit-details-marker { display: none; }
+  .disclaimer summary::before {
+    content: '▶'; display: inline-block; font-size: 10px; margin-right: 8px;
+    transition: transform 0.15s ease; color: var(--rust);
+  }
+  .disclaimer[open] summary::before { transform: rotate(90deg); }
+  .disclaimer summary:hover { color: var(--rust); }
+  .disclaimer-body { padding: 0 16px 16px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tab {
+    border: 1px solid var(--line); background: #fff; color: var(--ink-dim);
+    padding: 9px 16px; border-radius: 7px; cursor: pointer; font-size: 13.5px; font-weight: 600;
+  }
+  .tab.active { background: var(--walnut); border-color: var(--walnut); color: var(--cream); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 22px; }
+  .card h2 { margin: 0 0 16px; font-size: 16px; color: var(--walnut); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  label { display: block; font-size: 12.5px; color: var(--ink-dim); margin: 0 0 4px; }
+  input, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 5px;
+    font-size: 14px; font-family: inherit; background: #fff; color: var(--ink);
+  }
+  .field .hint { font-size: 11px; color: var(--ink-dim); margin-top: 3px; }
+
+  .warn-callout {
+    background: #f9e6de; border: 1px solid #e3b29c; color: #7a3620;
+    border-radius: 7px; padding: 10px 14px; font-size: 13px; margin-top: 14px; line-height: 1.5;
+    display: none;
+  }
+  .warn-callout.show { display: block; }
+  .warn-callout b { color: #5c2514; }
+  .warn-callout ul { margin: 4px 0 0; padding-left: 18px; }
+
+  .results { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 16px; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-dim); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th .th-sub { display: block; font-size: 9.5px; text-transform: none; letter-spacing: 0; font-weight: 400; margin-top: 1px; }
+  td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.name { font-weight: 700; color: var(--walnut); white-space: nowrap; }
+  td.name .note { font-weight: 400; color: var(--ink-dim); font-size: 11.5px; display: block; }
+  td.qty { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  td.formula { color: var(--ink-dim); font-size: 12.5px; max-width: 240px; white-space: normal; }
+  td.price { white-space: nowrap; }
+  td.price input { width: 72px; padding: 6px 7px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  td.price input.auto-price { border-color: var(--rust); background: #fdf6f0; }
+  td.price .auto-tag { display: block; font-size: 9.5px; color: var(--rust); margin-top: 2px; white-space: nowrap; }
+  td.price .prod-link { display: inline-block; font-size: 11.5px; font-weight: 600; color: #fff; background: var(--walnut); margin-top: 4px; padding: 2px 7px; border-radius: 4px; text-decoration: none; white-space: nowrap; }
+  td.price .prod-link:hover { background: var(--rust); }
+  td.price .line-total { display: block; font-size: 11px; font-weight: 700; color: var(--walnut); margin-top: 3px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tfoot td { font-variant-numeric: tabular-nums; }
+  tr.total-row td { border-top: 1.5px solid var(--line); border-bottom: none; font-weight: 700; color: var(--walnut); font-size: 15px; padding-top: 12px; }
+  tr.send-row td { border-bottom: none; padding-top: 6px; }
+  .send-btn {
+    background: var(--rust); color: #fff; border: none; border-radius: 5px;
+    padding: 5px 10px; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .send-btn:hover { background: #a1571f; }
+  .send-btn:disabled { opacity: 0.4; cursor: default; }
+  .list-link { margin-left: 8px; font-size: 13px; color: var(--rust); font-weight: 600; text-decoration: none; }
+  .list-link:hover { text-decoration: underline; }
+  #send-status { font-size: 12.5px; color: var(--ink-dim); margin-left: 10px; }
+
+  .copy-btn {
+    margin-top: 14px; background: var(--cream); border: 1px solid var(--line); color: var(--walnut);
+    font-weight: 600; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  .copy-btn:hover { background: #ecdfc6; }
+  #copy-status { font-size: 12.5px; color: var(--ink-dim); margin-left: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Materialeberegner</h1>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <a href="indkoebsliste.html">Indkøbsliste →</a>
+    <a href="korsel.html">Kørsel →</a>
+    <a href="regler.html">Tømrerregler →</a>
+    <a href="index.html">← Tilbage til tilbud</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <details class="disclaimer">
+    <summary>⚠ Estimater, priser og styrkeklasse — læs før du bestiller</summary>
+    <div class="disclaimer-body">
+      <b>Estimater, ikke facit.</b> Mængderne er regnet ud fra almindelige tømrer-tommelfingerregler (c/c-afstande, dækningsbredder, spildprocent). Tjek altid mod den konkrete projekttegning, materialevalg og gældende byggeregler, før du bestiller — juster tallene i felterne, hvis dit projekt afviger fra standarderne.
+      <br><br>
+      <b>Priser:</b> Tre kolonner viser vejledende priser fra Davidsen, Bygma og Stark, researchet okt. 2026 for standardvarianten af materialet — så du kan sammenligne direkte og se, hvilken der er billigst til netop dit projekt. Felter markeret <span style="color:var(--rust)">● ca.</span> er forudfyldt; redigér dem, og markeringen forsvinder. Tomme felter betyder, at jeg ikke fandt en pålidelig pris dér (fx lærk, komposit, cedertræ, eller enkelte Stark-varer) — indsæt selv. Priser svinger over tid og varierer efter dimension/kvalitet — tjek altid den aktuelle pris, før du bestiller eller regner et tilbud færdigt.
+      <br><br>
+      <b>Styrkeklasse (C-klasse):</b> Vælgeren mærker bjælketræ-linjerne med den klasse, du planlægger at bruge (til bestilling og dokumentation) — den <u>beregner ikke</u>, om klassen reelt er stærk nok til dit spænd/belastning. C18 er dansk minimum til bærende konstruktioner; almindelig (ikke-styrkesorteret) reglar må slet ikke bruges bærende. Brug TRÆbjælker-appen (Træinformation, gratis, Eurocode 5-baseret) eller en konstruktør til den faktiske dimensionering.
+    </div>
+  </details>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="card">
+    <h2 id="form-title"></h2>
+    <div class="field" id="material-row" style="max-width:360px; margin-bottom:16px;">
+      <label>Hvad laver du?</label>
+      <select id="material-select"></select>
+    </div>
+    <div class="grid" id="form-fields"></div>
+    <div class="warn-callout" id="warn-box"></div>
+
+    <div class="results">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Materiale</th><th>Mængde</th>
+            <th>Davidsen<br><span class="th-sub">kr./enhed</span></th>
+            <th>Bygma<br><span class="th-sub">kr./enhed</span></th>
+            <th>Stark<br><span class="th-sub">kr./enhed</span></th>
+            <th>Antagelse</th>
+          </tr></thead>
+          <tbody id="results-body"></tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2">Samlet materialepris</td>
+              <td id="grand-total-davidsen">0 kr.</td>
+              <td id="grand-total-bygma">0 kr.</td>
+              <td id="grand-total-stark">0 kr.</td>
+              <td></td>
+            </tr>
+            <tr class="send-row">
+              <td colspan="2"></td>
+              <td><button type="button" class="send-btn" data-store="davidsen">→ Tilbud</button></td>
+              <td><button type="button" class="send-btn" data-store="bygma">→ Tilbud</button></td>
+              <td><button type="button" class="send-btn" data-store="stark">→ Tilbud</button></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <button class="copy-btn" id="copy-btn">Kopiér resultat</button>
+      <button class="copy-btn" id="list-btn">+ Tilføj til indkøbsliste</button>
+      <a class="list-link" href="indkoebsliste.html">Se indkøbslisten →</a>
+      <span id="copy-status"></span>
+      <span id="send-status"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const fmt = n => n.toLocaleString('da-DK', { maximumFractionDigits: Math.abs(n) < 1 ? 3 : 2 });
+const ceil = Math.ceil;
+
+// Indikative startpriser pr. butik, researchet hos davidsen.dk, bygma.dk
+// og stark.dk (okt. 2026) — kun forudfyldt for standard/trykimprægneret-
+// varianten, hvor priserne reelt er tjekket. null = ikke fundet en
+// pålidelig pris; feltet står tomt, indtil du selv udfylder det.
+// Enheder: lumber/planker i kr./lbm, pladematerialer i kr./m² (ganges med
+// den pladestørrelse du har valgt), diskrete dele i kr./stk.
+const STORES = ['davidsen', 'bygma', 'stark'];
+const STORE_LABEL = { davidsen: 'Davidsen', bygma: 'Bygma', stark: 'Stark' };
+
+// Styrkeklasser for konstruktionstræ, EN 338 / DS/EN 14081-1. C18 er
+// minimum til bærende konstruktioner i dansk praksis; almindelig
+// (ikke-styrkesorteret) reglar må ikke bruges bærende.
+const CKLASSE_FIELD = {
+  id: 'cklasse', label: 'Styrkeklasse (C-klasse)', type: 'select',
+  options: ['C16', 'C18', 'C24', 'C30'], def: 'C18',
+  hint: 'C18 = minimum til bærende konstruktioner. C24 = stærkere/dyrere, til længere spænd.',
+};
+
+const PRICES = {
+  // Trykimp. terrassebræt, ~125mm — kr./lbm
+  impraegneretBraedPerM: { davidsen: 18, bygma: 16.95, stark: 17.95 },
+  // Trykimp. reglar, ~45x95mm (udendørs bærebjælker/bærelægter) — kr./lbm
+  impraegneretReglarPerM: { davidsen: 22, bygma: 21.95, stark: 19.95 },
+  // Uimprægneret konstruktionsreglar (indendørs væg/tag/gulv) — kr./lbm
+  indoorReglarPerM: { davidsen: 35, bygma: 27.93, stark: 23.90 },
+  // Trykimp. hegnsbræt, 19x100mm — kr./lbm
+  hegnsbraedPerM: { davidsen: 8.00, bygma: 6.95, stark: 11.45 },
+  // Trykimp. stolpe, 97x97mm ~2,4m — kr./stk
+  stolpePerStk: { davidsen: 93.98, bygma: null, stark: 105.48 },
+  // Stolpebeton, 20 kg sæk (1 pr. stolpe) — kr./stk
+  stolpebetonPerStk: { davidsen: 60, bygma: 51.49, stark: 56.95 },
+  // Gipsplade 13mm, normaliseret til kr./m²
+  gipspladePerM2: { davidsen: 30.00, bygma: 15.85, stark: 66.95 },
+  // OSB-plade 22mm, normaliseret til kr./m²
+  osbPladePerM2: { davidsen: 350.00, bygma: 70.84, stark: 254.06 },
+  // Gulvspånplade 22mm, normaliseret til kr./m²
+  spaanpladeGulvPerM2: { davidsen: 99.00, bygma: 157.80, stark: 199.95 },
+  // Isolering, Knauf EcoBlanket/Ecobatt 37, 145mm rulle — kr./m²
+  // pr. tykkelse (mm): kr./m² udregnet af rullens pris ÷ m² pr. rulle
+  isoleringPerM2: {
+    rulle: {
+      95:  { davidsen: 50.00, bygma: null,  stark: 68.95 },   // Dav. 336/6,72 · Stark 401,98/5,83 · Bygma har ikke 95 mm rulle
+      145: { davidsen: 76.00, bygma: 35.83, stark: 104.95 },  // Dav. 339,26/4,46 · Bygma 159,95/4,46 · Stark 450,24/4,29
+      195: { davidsen: 103.00, bygma: 62.00, stark: 156.00 }, // Dav. 354,98/3,446 · Bygma 213,95/3,45 · Stark 538,20/3,45
+    },
+    // Knauf Ecobatt 37 formstykker (bats) 560x980
+    bat: {
+      95:  { davidsen: 50.00, bygma: null,  stark: 75.96 },   // Dav. 219,52/4,39 · Stark 333,45/4,39 · Bygma-tal uklart
+      145: { davidsen: 76.00, bygma: 32.95, stark: 110.20 },  // Dav. 166,84/2,195 · Bygma 72,50/2,20 · Stark 241,36/2,19
+      195: { davidsen: 103.00, bygma: 46.02, stark: 155.37 }, // Dav. 226,11/2,195 · Bygma 101,25/2,20 · Stark 340,25/2,19
+    },
+  },
+  // m² pr. pakke/rulle (Knauf 37) pr. type og tykkelse
+  isoleringPakkeM2: {
+    rulle: { 95: 6.72, 145: 4.46, 195: 3.45 },
+    bat:   { 95: 4.39, 145: 2.20, 195: 2.20 },
+  },
+  // Stålregel, Knauf MR70 70mm stolpesystem — kr./lbm
+  staalRegelPerM: { davidsen: 32.00, bygma: 10.75, stark: 45.97 },
+  // Stålskinne (sål/toprem), Knauf MSKP70 — kr./lbm
+  staalSkinnePerM: { davidsen: 38.00, bygma: 13.42, stark: null },
+  // Terrasseskruer — kr./stk (pakkepris omregnet)
+  terrasseskruePerStk: { davidsen: 0.41, bygma: 0.90, stark: 0.71 },
+  // Gipsskruer — kr./stk (pakkepris omregnet)
+  gipsskruePerStk: { davidsen: 0.23, bygma: 0.11, stark: 0.16 },
+  // Fugestop (rund PE-bagstop, Dana 980 / RAW Fugebund Premium), pris pr. 5 m rulle pr. tykkelse (mm)
+  fugestopPrRulle: {
+    10: { davidsen: 65, bygma: 62.95, stark: 84.95 },
+    16: { davidsen: 70, bygma: 79.33, stark: 98.95 },
+    20: { davidsen: 85, bygma: 73.15, stark: 95.95 },
+  },
+  // Generel træskrue/søm — kr./stk
+  skruePerStk: { davidsen: 0.3, bygma: 0.3, stark: 0.3 },
+};
+
+// Produktsider, hvor prisen er fundet (okt. 2026). Nogle er kategorisider,
+// hvor den præcise vare ikke havde en stabil direkte adresse. Matches på rækkenavn.
+const LINKS = [
+  { re: /^Terrassebrædder/, davidsen: 'https://www.davidsen.dk/terrassebraedder-glat-fyr-trykimpraegneret-32-x-125-mm-x-36-m-c-id2000080-p-1088032127-0360', bygma: 'https://www.bygma.dk/byggematerialer/tra/terrassebradder/tra-terrassebradder/solid-terrassebradder-trykimpragneret---28x120mm100p1075032125-0100/', stark: 'https://www.stark.dk/raw-fyr-seksta-terrassebraedder-trykimpraegneret-32x125-mm-4200-mm?id=1356-03212580420' },
+  { re: /^(Bærebjælker|Vandrette bærelægter)/, davidsen: 'https://www.davidsen.dk/reglar-fyr-trykimpraegneret-ntr-klasse-a-b-47x100-mm-c-id525362-p-1388047100000', bygma: 'https://www.bygma.dk/byggematerialer/tra/trykimpragneret-tra/trykimpragnerede-reglar/solid-reglar-45x95mm-i-trykimpragneret-tra100p1387047100-0100/', stark: 'https://www.stark.dk/raw-fyr-seksta-trykimpraegneret-50x100-mm-3600-mm?id=1351-05010040360' },
+  { re: /^Terrasseskruer/, davidsen: 'https://www.davidsen.dk/fischer-fts-st-terrasseskrue-42x45-a4-220-stk-c-id525231-p-51602098989', bygma: 'https://www.bygma.dk/bolig-og-fritid/terrasse/terrasseskruer/bygma-terrasseskrue-a4-tx20---42x45mm---200-stkpk100p188774/', stark: 'https://www.stark.dk/nkt-fasteners-terrasseskrue-rustfri-kv-a4-tx20-55-mm-4-2-mm-170?id=2701-1611307' },
+  { re: /^Stolper \(/, davidsen: 'https://www.davidsen.dk/toemmer-ru-stolper-trykimpraegneret-97-x-97-mm-c-id525421-p-1618097097000', bygma: null, stark: 'https://www.stark.dk/raw-stolpe-trykimpraegneret-97x97-mm-2400-mm?id=1671-09709700240' },
+  { re: /^Stolpebeton/, davidsen: 'https://www.davidsen.dk/skalflex-stolpebeton-20-kg-c-id525016-p-30402110355', bygma: null, stark: 'https://www.stark.dk/raw-stolpebeton-20-kg?id=6220-9777638' },
+  { re: /^Planker/, davidsen: 'https://www.davidsen.dk/hegnsbraedder-gran-trykimpraegneret-19-x-100-mm-x-18m-c-id525367-p-1187019100-0180', bygma: 'https://www.bygma.dk/bolig-og-fritid/have/hegn/hegnsbradder/bygma-hegnsbradder-i-trykimpragneret-tra---19x100mm-gran100p1186019100-0100/', stark: 'https://www.stark.dk/raw-fyr-seksta-trykimpraegneret-19x100-mm-3300-mm?id=1351-01910000330' },
+  { re: /^(Træregler|Sål\/toprem \(C|Spær|Bjælker \()/, davidsen: 'https://www.davidsen.dk/reglar-vaeg-i-fyr-gran-47-x125-mm-c-id525362-p-1337047125000', bygma: 'https://www.bygma.dk/byggematerialer/tra/reglar/solid-reglar---hovlede-pa-4-sider---45x95mm100p1437047100-0100/', stark: 'https://www.stark.dk/raw-reglar-47x100-mm-2400-mm?id=1325-04710070240' },
+  { re: /^Stålregler/, davidsen: 'https://www.davidsen.dk/knauf-mr-stolpe-046x70-mm-c-id524996-p-36105304097000', bygma: 'https://www.bygma.dk/byggematerialer/byggeplader/gipsplader/stolper-til-gipsplader/fermacell-cw50-stalstolpe-stalsystem---06x50mmx26m100p121426/', stark: 'https://www.stark.dk/gyproc-er-standardlaegte-70-mm-2685-mm?id=4120-3606282' },
+  { re: /^Sål\/toprem \(stål/, davidsen: 'https://www.davidsen.dk/knauf-mskp-vaeg-loft-3600x046x70-mm-c-id524996-p-36105304127', bygma: 'https://www.bygma.dk/byggematerialer/byggeplader/gipsplader/gipsstolper/knauf-vagloftskinne-mskp70---360cm100p037499/', stark: null },
+  { re: /^Gipsplader/, davidsen: 'https://www.davidsen.dk/knauf-gds-gipsplade-13x900x2400-mm-c-id524995-p-36101410293', bygma: 'https://www.bygma.dk/byggematerialer/byggeplader/gipsplader/standard-gipsplader/13mm-knauf-gipsplader-gds---120x240cm100p049539/', stark: 'https://www.stark.dk/raw-standard-gips-ak-13-mm-900-mm-2400-mm?id=4100-9760226' },
+  { re: /^Isolering 95 mm bat/, davidsen: 'https://www.davidsen.dk/knauf-ecobatt-37-insulation-form-95x560x980-mm-c-id525024-p-45101655607', bygma: null, stark: 'https://www.stark.dk/knauf-insulation-ecobatt-37-formstykker-95-mm-560-mm-980-mm?id=4400-1655607' },
+  { re: /^Isolering 145 mm bat/, davidsen: 'https://www.davidsen.dk/knauf-ecobatt-37-insulation-form-145x560x980-mm-c-id525024-p-45101655613', bygma: 'https://www.bygma.dk/byggematerialer/isolering/knauf-isolering/knauf-ecobatt-37-formstykker/knauf-ecobatt-37-formstykke---145-mm-isolering100p150382/', stark: 'https://www.stark.dk/knauf-insulation-ecobatt-37-formstykker-145-mm-560-mm-980-mm?id=4400-1655613' },
+  { re: /^Isolering 195 mm bat/, davidsen: 'https://www.davidsen.dk/knauf-ecobatt-37-insulation-form-195x560x980-mm-c-id525024-p-45101655615', bygma: 'https://www.bygma.dk/byggematerialer/isolering/knauf-isolering/knauf-ecobatt-37-formstykker/knauf-ecobatt-37-formstykke---195-mm-isolering100p150383/', stark: 'https://www.stark.dk/knauf-insulation-ecobatt-37-formstykker-195-mm-560-mm-980-mm?id=4400-1655615' },
+  { re: /^Isolering 95/, davidsen: 'https://www.davidsen.dk/knauf-ecoblanket-37-insulation-rulle-95x960x7000-mm-c-id525024-p-45102171251', bygma: null, stark: 'https://www.stark.dk/knauf-insulation-ecobatt-37-rulle-95-mm-960-mm-6070-mm?id=4400-1423227' },
+  { re: /^Isolering 145/, davidsen: 'https://www.davidsen.dk/knauf-ecoblanket-37-insulation-rulle-145x960x4650-mm-c-id525024-p-45102171253', bygma: 'https://www.bygma.dk/byggematerialer/isolering/glasuld-isolering/knauf-insulation-ecoblanket-37-rulleisolering-145-mm-isolering100p260654/', stark: 'https://www.stark.dk/knauf-insulation-ecobatt-37-rulle-145-mm-960-mm-4470-mm?id=4400-1423229' },
+  { re: /^Isolering 195/, davidsen: 'https://www.davidsen.dk/knauf-ecoblanket-37-insulation-rulle-195x960x3590-mm-c-id525024-p-45101423233', bygma: 'https://www.bygma.dk/byggematerialer/isolering/rulleisolering/knauf-insulation-ecoblanket-37-rulleisolering-195-mm-isolering100p106243/', stark: 'https://www.stark.dk/knauf-insulation-ecobatt-37-rulle-195-mm-960-mm-3590-mm?id=4400-1423233' },
+  { re: /^Gipsskruer/, davidsen: 'https://www.davidsen.dk/fermacell-gipsskruer-39x30-mm-1000-stk-c-id524997-p-51605979758', bygma: 'https://www.bygma.dk/beslag-og-befastigelse/skruer/gipsskruer/bygma-hardgipsskrue-til-stal-bandet-39-x-30mm---1000-stkpakke100p188822/', stark: 'https://www.stark.dk/raptor-ph2-gipsskruer-til-trae-baandede-3-9-mm-35-mm-1000?id=2701-9840524' },
+  { re: /^Fugeisolering/, davidsen: 'https://www.davidsen.dk/knauf-installation-fugefilt-37-25x60x20000mm-c-id525024-p-45102310171', bygma: 'https://bygma.dk/byggematerialer/isolering/rulleisolering-og-formstykker/isover-fugefilt---20-mm-isolering100p054258', stark: 'https://www.stark.dk/knauf-insulation-fugefilt-37-25-mm-60-mm-20-m?id=4400-2310171' },
+  { re: /^Fugestop \(bagstop Ø10/, davidsen: 'https://www.davidsen.dk/dana-fugebaand-980-5m-x-10mm-c-id525441-p-47403449154', bygma: 'https://www.bygma.dk/byggematerialer/murerartikler/fugning/dana-lim-fugebund-980-5-mpk---10mm-100p008291/', stark: 'https://www.stark.dk/raw-fugebund-premium-10-mm-5-m?id=2840-9730549' },
+  { re: /^Fugestop \(bagstop Ø16/, davidsen: 'https://www.davidsen.dk/dana-fugebaand-980-5m-x-16mm-c-id525441-p-47403449162', bygma: 'https://www.bygma.dk/byggematerialer/murerartikler/fugning/dana-lim-fugebund-980-5-mpk---16mm100p008292/', stark: 'https://www.stark.dk/raw-fugebund-premium-16-mm-5-m?id=2840-9730550' },
+  { re: /^Fugestop \(bagstop Ø20/, davidsen: 'https://www.davidsen.dk/dana-fugebaand-980-5m-x-20mm-c-id525441-p-47403449170', bygma: 'https://www.bygma.dk/byggematerialer/murerartikler/fugning/dana-lim-fugebund-980-5-mpk---20mm100p008293/', stark: 'https://www.stark.dk/raw-fugebund-premium-20-mm-5-m?id=2840-9730551' },
+  { re: /^Karmskruer/, davidsen: null, bygma: 'https://www.bygma.dk/beslag-og-befastigelse/skruer/betonskruer/bygma-betonskrue-tx30---75x132mm100p188762/', stark: 'https://www.stark.dk/raw-tx-karmskrue-uden-hoved-7-5-mm-132-mm-100?id=2701-9720571' },
+  { re: /^Indfatning/, davidsen: 'https://www.davidsen.dk/lti-2-indfatning-gerigt-i-fyr-hvidmalet-14x65-mm-c-id525478-p-18002367745000', bygma: 'https://www.bygma.dk/byggematerialer/dore-og-vinduer/dore/indvendige-dore/gerigter/nova-indfatning-nr.-120hf-hvid---14x65x2200mm100p000490/', stark: 'https://www.stark.dk/raw-indfatning-nr-2-fyr-hvid-14-mm-65-mm-2200-mm-hvid?id=5400-5345803' },
+  { re: /^Gerigtsæt/, davidsen: 'https://www.davidsen.dk/swedoor-flex-gerigtsaet-65-mm-glat-hvid-2089-mm-c-id525479-p-40605738702000', bygma: 'https://www.bygma.dk/byggematerialer/dore-og-vinduer/dore/indvendige-dore/gerigter/swedoor-gerigtsat-hvid-til-flex-karmsat---65x686x2089mm100p050453/', stark: 'https://www.stark.dk/swedoor-gerigtsaet-flex-glat-65-mm-hvid-686-mm-2089-mm?id=5200-5738702' },
+  { re: /^Undertagsplader/, davidsen: 'https://www.davidsen.dk/npi-osb-3-tg2-ext-limet-22x1220x2440-mm-c-id525407-p-38601879405', bygma: 'https://www.bygma.dk/byggematerialer/byggeplader/osb-plader/osb-plader-22mm---osb3-tg2---122x244-cm100p266293/', stark: 'https://www.stark.dk/raw-osb3-gulv-tag-tg2-22-mm-610-mm-2440-mm?id=3200-9666483' },
+  { re: /^Gulvplader/, davidsen: 'https://www.davidsen.dk/gulvspaanplade-22-mm-med-fer-not-620x2420-mm-c-id525447-p-38401845584', bygma: 'https://www.bygma.dk/byggematerialer/byggeplader/gulvvarmeplader/22mm-novopan-spaandex-k-gulv---62x182cm100p114375/', stark: 'https://www.stark.dk/novopan-spaandex-k-gulv-en-312-p6-db-prof-22-mm-620-mm-2420-mm?id=3400-5961655' },
+];
+function linkFor(rowName, store) {
+  const hit = LINKS.find(l => l.re.test(rowName));
+  return hit ? hit[store] : null;
+}
+
+function scalePrices(priceObj, multiplier) {
+  const out = {};
+  STORES.forEach(s => { out[s] = priceObj[s] == null ? null : priceObj[s] * multiplier; });
+  return out;
+}
+function nullPrices() {
+  const out = {};
+  STORES.forEach(s => { out[s] = null; });
+  return out;
+}
+
+// Each calculator: fields (id, label, default, unit/hint) + a compute(vals) -> [{name, qty, unit, formula}]
+const CALCS = {
+  terrasse: {
+    title: 'Terrasse',
+    materials: [
+      { key: 'impraegneret', label: 'Trykimprægneret fyr', overrides: { braedbredde: 125, braedlaengde: 4.2, fuge: 5 } },
+      { key: 'laerk', label: 'Lærk', overrides: { braedbredde: 120, braedlaengde: 4.0, fuge: 5 } },
+      { key: 'komposit', label: 'Komposit (WPC)', overrides: { braedbredde: 140, braedlaengde: 3.6, fuge: 6 } },
+    ],
+    fields: [
+      { id: 'laengde', label: 'Længde', def: 5, hint: 'meter' },
+      { id: 'bredde', label: 'Bredde', def: 4, hint: 'meter' },
+      { id: 'braedbredde', label: 'Brædtbredde', def: 125, hint: 'mm' },
+      { id: 'fuge', label: 'Fuge mellem brædder', def: 5, hint: 'mm' },
+      { id: 'braedlaengde', label: 'Standard brædtlængde', def: 4.2, hint: 'meter (leveringslængde)' },
+      { id: 'bjaelkeafstand', label: 'Bjælkeafstand c/c', def: 500, hint: 'mm' },
+      { id: 'spild', label: 'Spild', def: 10, hint: '%' },
+      CKLASSE_FIELD,
+    ],
+    compute(v, matKey) {
+      const areal = v.laengde * v.bredde;
+      const daekning = (v.braedbredde + v.fuge) / 1000;
+      const lobemeter = (areal / daekning) * (1 + v.spild / 100);
+      const antalBraedder = ceil(lobemeter / v.braedlaengde);
+      const antalBjaelker = ceil(v.laengde / (v.bjaelkeafstand / 1000)) + 1;
+      const bjaelkeLobemeter = antalBjaelker * v.bredde;
+      const skruer = ceil(areal * 25);
+      const isImp = matKey === 'impraegneret';
+      return [
+        { name: 'Terrassebrædder', amount: antalBraedder, unit: 'stk', formula: `${fmt(areal)} m² ÷ ${fmt(daekning)} m dækning + ${v.spild}% spild → ${fmt(lobemeter)} lbm ÷ ${v.braedlaengde} m/stk`,
+          defaultPrices: isImp ? scalePrices(PRICES.impraegneretBraedPerM, v.braedlaengde) : nullPrices() },
+        { name: `Bærebjælker (${v.cklasse})`, amount: antalBjaelker, unit: 'stk', note: `${fmt(bjaelkeLobemeter)} lbm i alt`, formula: `${fmt(v.laengde)} m ÷ ${v.bjaelkeafstand} mm c/c, hver ${fmt(v.bredde)} m lang`,
+          defaultPrices: isImp ? scalePrices(PRICES.impraegneretReglarPerM, v.bredde) : nullPrices() },
+        { name: 'Terrasseskruer', amount: skruer, unit: 'stk', formula: `tommelfingerregel: 25 skruer/m²`,
+          defaultPrices: PRICES.terrasseskruePerStk },
+      ];
+    },
+    warnings(v) {
+      const w = [];
+      if (v.bredde > 4) {
+        w.push(`Bærebjælker på ${fmt(v.bredde)} m kræver normalt punktfundamenter undervejs (typisk maks. ca. 3,5–4 m mellem understøtninger) — få en fagperson til at tjekke dimensionering og understøtning.`);
+      }
+      return w;
+    },
+  },
+  hegn: {
+    title: 'Hegn / plankeværk',
+    materials: [
+      { key: 'impraegneret', label: 'Trykimprægneret fyr', overrides: { braedbredde: 100, fuge: 10 } },
+      { key: 'laerk', label: 'Lærk', overrides: { braedbredde: 100, fuge: 8 } },
+      { key: 'ceder', label: 'Cedertræ', overrides: { braedbredde: 95, fuge: 8 } },
+    ],
+    fields: [
+      { id: 'laengde', label: 'Hegnslængde', def: 20, hint: 'meter' },
+      { id: 'hoejde', label: 'Højde', def: 1.8, hint: 'meter' },
+      { id: 'stolpeafstand', label: 'Stolpeafstand c/c', def: 1.8, hint: 'meter' },
+      { id: 'braedbredde', label: 'Plankebredde', def: 100, hint: 'mm (lodret montage)' },
+      { id: 'fuge', label: 'Fuge mellem planker', def: 10, hint: 'mm' },
+      { id: 'raekker', label: 'Vandrette bærelægter', def: 2, hint: 'antal rækker (2 eller 3)' },
+      { id: 'spild', label: 'Spild', def: 10, hint: '%' },
+      CKLASSE_FIELD,
+    ],
+    compute(v, matKey) {
+      const antalStolper = ceil(v.laengde / v.stolpeafstand) + 1;
+      const daekning = (v.braedbredde + v.fuge) / 1000;
+      const antalPlanker = ceil(v.laengde / daekning);
+      const plankeLobemeter = antalPlanker * v.hoejde * (1 + v.spild / 100);
+      const laegtLobemeter = v.raekker * v.laengde;
+      const skruer = ceil(antalPlanker * v.raekker * 2);
+      const isImp = matKey === 'impraegneret';
+      return [
+        { name: `Stolper (${v.cklasse})`, amount: antalStolper, unit: 'stk', formula: `${fmt(v.laengde)} m ÷ ${fmt(v.stolpeafstand)} m c/c + 1`,
+          defaultPrices: isImp ? PRICES.stolpePerStk : nullPrices() },
+        { name: 'Stolpebeton (nedstøbning)', amount: antalStolper, unit: 'stk', formula: `1 sæk (20 kg) pr. stolpe`,
+          defaultPrices: PRICES.stolpebetonPerStk },
+        { name: 'Planker (lodrette)', amount: antalPlanker, unit: 'stk', note: `${fmt(plankeLobemeter)} lbm i alt`, formula: `${fmt(v.laengde)} m ÷ ${fmt(daekning)} m dækning, hver ${fmt(v.hoejde)} m + ${v.spild}% spild`,
+          defaultPrices: isImp ? scalePrices(PRICES.hegnsbraedPerM, v.hoejde) : nullPrices() },
+        { name: `Vandrette bærelægter (${v.cklasse})`, amount: laegtLobemeter, unit: 'lbm', formula: `${v.raekker} rækker × ${fmt(v.laengde)} m`,
+          defaultPrices: isImp ? PRICES.impraegneretReglarPerM : nullPrices() },
+        { name: 'Skruer', amount: skruer, unit: 'stk', formula: `2 pr. planke pr. bærelægte-række`,
+          defaultPrices: PRICES.skruePerStk },
+      ];
+    },
+    warnings(v) {
+      const w = [];
+      if (v.hoejde > 1.8) {
+        w.push(`Hegn over 1,8 m mod naboskel kan kræve naboaftale eller tilladelse, afhængig af kommune og placering (hegnsloven) — tjek med kommunen og naboen før opførelse.`);
+      }
+      return w;
+    },
+  },
+  vaeg: {
+    title: 'Væg / skillevæg (indvendig)',
+    materials: [
+      { key: 'standard', label: 'Almindelig skillevæg (13mm gips)', overrides: { pladestr: 2.88 } },
+      { key: 'vaad', label: 'Vådrum/badeværelse (imprægneret gips)', overrides: { pladestr: 2.88 } },
+      { key: 'brand', label: 'Brandadskillelse (certificeret system)', overrides: { pladestr: 2.88 } },
+    ],
+    fields: [
+      { id: 'laengde', label: 'Væglængde', def: 4, hint: 'meter' },
+      { id: 'hoejde', label: 'Loftshøjde', def: 2.5, hint: 'meter' },
+      { id: 'regelmateriale', label: 'Regelmateriale', type: 'select', options: ['Træ', 'Stål'], def: 'Træ',
+        hint: 'Stål (fx Knauf MR70) er almindeligt til ikke-bærende skillevægge. Styrkeklasse (C-klasse) gælder kun træ.' },
+      { id: 'regelafstand', label: 'Regelafstand c/c', def: 600, hint: 'mm' },
+      { id: 'antalSider', label: 'Antal sider beklædt', def: 2, hint: '1 (kun én side) eller 2 (begge sider af væggen)' },
+      { id: 'antalLag', label: 'Antal lag gips pr. side', def: 2, hint: '2 lag er standard (lydisolering/styrke); 1 lag kun til lette/midlertidige vægge' },
+      { id: 'pladestr', label: 'Gipsplade-størrelse', def: 2.88, hint: 'm² pr. plade (std. 1,2×2,4m)' },
+      { id: 'isolerType', label: 'Isoleringstype', type: 'select', options: ['Rulle', 'Bat (formstykker)'], def: 'Rulle',
+        hint: 'Rulle skæres til mål. Bat er færdigskårne plader til regelafstand ca. 600 mm.' },
+      { id: 'isolerTykkelse', label: 'Isoleringstykkelse', type: 'select', options: ['95 mm', '145 mm', '195 mm'], def: '145 mm',
+        hint: 'Knauf glasuld 37. 95 mm passer til 45x95 regler, 145 mm til 45x145, 195 mm til 45x195.' },
+      { id: 'spild', label: 'Spild', def: 10, hint: '%' },
+      { id: 'baerende', label: 'Væggen er bærende', type: 'checkbox', def: false, hint: '' },
+      CKLASSE_FIELD,
+    ],
+    compute(v, matKey) {
+      const areal = v.laengde * v.hoejde;
+      const antalRegler = ceil(v.laengde / (v.regelafstand / 1000)) + 1;
+      const remLobemeter = 2 * v.laengde;
+      const antalPlader = ceil((areal * v.antalSider * v.antalLag / v.pladestr) * (1 + v.spild / 100));
+      const tykkelse = parseInt(v.isolerTykkelse, 10);
+      const isoType = v.isolerType === 'Rulle' ? 'rulle' : 'bat';
+      const pakkeM2 = PRICES.isoleringPakkeM2[isoType][tykkelse];
+      const antalIsolerPakker = ceil((areal / pakkeM2) * (1 + v.spild / 100));
+      const skruer = antalPlader * 40;
+      const isStandard = matKey === 'standard';
+      const erStaal = v.regelmateriale === 'Stål';
+      const regelNavn = erStaal ? 'Stålregler (stolper)' : `Træregler (stolper) (${v.cklasse})`;
+      const skinneNavn = erStaal ? 'Sål/toprem (stålskinne)' : `Sål/toprem (${v.cklasse})`;
+      const regelPrices = erStaal ? PRICES.staalRegelPerM : PRICES.indoorReglarPerM;
+      const skinnePrices = erStaal ? PRICES.staalSkinnePerM : PRICES.indoorReglarPerM;
+      return [
+        { name: regelNavn, amount: antalRegler, unit: 'stk', note: `${fmt(v.hoejde)} m lange`, formula: `${fmt(v.laengde)} m ÷ ${v.regelafstand} mm c/c + 1`,
+          defaultPrices: scalePrices(regelPrices, v.hoejde) },
+        { name: skinneNavn, amount: remLobemeter, unit: 'lbm', formula: `2 × ${fmt(v.laengde)} m (top + bund)`,
+          defaultPrices: skinnePrices },
+        { name: 'Gipsplader', amount: antalPlader, unit: 'stk', formula: `${fmt(areal)} m² × ${v.antalSider} side(r) × ${v.antalLag} lag ÷ ${v.pladestr} m²/plade + ${v.spild}% spild`,
+          defaultPrices: isStandard ? scalePrices(PRICES.gipspladePerM2, v.pladestr) : nullPrices() },
+        { name: `Isolering ${tykkelse} mm ${isoType}`, amount: antalIsolerPakker, unit: isoType === 'rulle' ? 'ruller' : 'pakker', note: `${fmt(areal)} m² vægareal`, formula: `${fmt(areal)} m² ÷ ${fmt(pakkeM2)} m²/${isoType === 'rulle' ? 'rulle' : 'pakke'} + ${v.spild}% spild`,
+          defaultPrices: scalePrices(PRICES.isoleringPerM2[isoType][tykkelse], pakkeM2) },
+        { name: 'Gipsskruer', amount: skruer, unit: 'stk', formula: `tommelfingerregel: 40 pr. plade`,
+          defaultPrices: PRICES.gipsskruePerStk },
+      ];
+    },
+    warnings(v) {
+      const w = [];
+      if (v.baerende && v.regelmateriale === 'Stål') {
+        w.push(`Bærende vægge kræver statisk dokumentation efter Bygningsreglementet (BR18). Stålregelsystemer (fx Knauf MR70) er normalt lavet til ikke-bærende skillevægge — brug af stål i en bærende væg er ualmindeligt og kræver en konstruktørberegning af det specifikke stålsystem. Overvej om træ i styrkesorteret klasse er det rigtige valg i stedet.`);
+      } else if (v.baerende) {
+        w.push(`Bærende vægge kræver statisk dokumentation efter Bygningsreglementet (BR18) — skal dimensioneres og godkendes af en certificeret statiker/konstruktør, ikke kun denne beregner. Almindelig (ikke-styrkesorteret) reglar må ikke bruges bærende — brug CE-mærket, styrkesorteret træ i mindst ${v.cklasse}, og få klassen bekræftet af konstruktøren.`);
+      }
+      return w;
+    },
+  },
+  tag: {
+    title: 'Tag (spær + undertag)',
+    fields: [
+      { id: 'laengde', label: 'Længde', def: 8, hint: 'meter' },
+      { id: 'spaendvidde', label: 'Spændvidde', def: 4, hint: 'meter (spærlængde)' },
+      { id: 'afstand', label: 'Spærafstand c/c', def: 600, hint: 'mm (typisk 600–1200 mm)' },
+      { id: 'pladestr', label: 'Undertagsplade-størrelse', def: 2.98, hint: 'm² pr. plade (OSB, std. 1,22×2,44m)' },
+      { id: 'spild', label: 'Spild', def: 10, hint: '%' },
+      CKLASSE_FIELD,
+    ],
+    compute(v) {
+      const areal = v.laengde * v.spaendvidde;
+      const antalSpaer = ceil(v.laengde / (v.afstand / 1000)) + 1;
+      const spaerLobemeter = antalSpaer * v.spaendvidde;
+      const antalPlader = ceil((areal / v.pladestr) * (1 + v.spild / 100));
+      const skruer = antalPlader * 30;
+      return [
+        { name: `Spær (${v.cklasse})`, amount: antalSpaer, unit: 'stk', note: `${fmt(spaerLobemeter)} lbm i alt`, formula: `${fmt(v.laengde)} m ÷ ${v.afstand} mm c/c + 1, hvert ${fmt(v.spaendvidde)} m`,
+          defaultPrices: scalePrices(PRICES.indoorReglarPerM, v.spaendvidde) },
+        { name: 'Undertagsplader', amount: antalPlader, unit: 'stk', formula: `${fmt(areal)} m² ÷ ${v.pladestr} m²/plade + ${v.spild}% spild`,
+          defaultPrices: scalePrices(PRICES.osbPladePerM2, v.pladestr) },
+        { name: 'Skruer/søm', amount: skruer, unit: 'stk', formula: `tommelfingerregel: 30 pr. plade`,
+          defaultPrices: PRICES.skruePerStk },
+      ];
+    },
+    warnings(v) {
+      const w = [];
+      if (v.spaendvidde > 4.5) {
+        w.push(`Spændvidder over ca. 4,5 m kan sjældent klares med standard dimensionstabeller, uanset styrkeklasse (${v.cklasse}) — spær bør dimensioneres efter Eurocode 5 (DS/EN 1995) af en konstruktør.`);
+      }
+      return w;
+    },
+  },
+  gulv: {
+    title: 'Gulv (bjælkelag)',
+    fields: [
+      { id: 'laengde', label: 'Længde', def: 8, hint: 'meter' },
+      { id: 'spaendvidde', label: 'Spændvidde', def: 4, hint: 'meter (bjælkelængde)' },
+      { id: 'afstand', label: 'Bjælkeafstand c/c', def: 500, hint: 'mm (typisk 400–600 mm)' },
+      { id: 'pladestr', label: 'Gulvplade-størrelse', def: 1.44, hint: 'm² pr. plade (spånplade, std. 0,6×2,4m)' },
+      { id: 'spild', label: 'Spild', def: 10, hint: '%' },
+      CKLASSE_FIELD,
+    ],
+    compute(v) {
+      const areal = v.laengde * v.spaendvidde;
+      const antalBjaelker = ceil(v.laengde / (v.afstand / 1000)) + 1;
+      const bjaelkeLobemeter = antalBjaelker * v.spaendvidde;
+      const antalPlader = ceil((areal / v.pladestr) * (1 + v.spild / 100));
+      const skruer = antalPlader * 30;
+      return [
+        { name: `Bjælker (${v.cklasse})`, amount: antalBjaelker, unit: 'stk', note: `${fmt(bjaelkeLobemeter)} lbm i alt`, formula: `${fmt(v.laengde)} m ÷ ${v.afstand} mm c/c + 1, hver ${fmt(v.spaendvidde)} m`,
+          defaultPrices: scalePrices(PRICES.indoorReglarPerM, v.spaendvidde) },
+        { name: 'Gulvplader', amount: antalPlader, unit: 'stk', formula: `${fmt(areal)} m² ÷ ${v.pladestr} m²/plade + ${v.spild}% spild`,
+          defaultPrices: scalePrices(PRICES.spaanpladeGulvPerM2, v.pladestr) },
+        { name: 'Skruer', amount: skruer, unit: 'stk', formula: `tommelfingerregel: 30 pr. plade`,
+          defaultPrices: PRICES.skruePerStk },
+      ];
+    },
+    warnings(v) {
+      const w = [];
+      if (v.spaendvidde > 4.5) {
+        w.push(`Spændvidder over ca. 4,5 m kan sjældent klares med standard dimensionstabeller, uanset styrkeklasse (${v.cklasse}) — bjælkelaget bør dimensioneres efter Eurocode 5 (DS/EN 1995) af en konstruktør.`);
+      }
+      return w;
+    },
+  },
+  vindue: {
+    title: 'Vindue og dør',
+    fields: [
+      { id: 'antalVinduer', label: 'Antal vinduer', def: 3, hint: 'stk' },
+      { id: 'vindueB', label: 'Vindue, bredde', def: 1.2, hint: 'meter' },
+      { id: 'vindueH', label: 'Vindue, højde', def: 1.2, hint: 'meter' },
+      { id: 'antalDoere', label: 'Antal døre', def: 1, hint: 'stk' },
+      { id: 'doerType', label: 'Dørtype', type: 'select', options: ['Udvendig dør', 'Indvendig dør'], def: 'Udvendig dør',
+        hint: 'Udvendig: fuges og tætnes mod vejr. Indvendig: kun karm, skruer og indfatning på begge sider.' },
+      { id: 'doerB', label: 'Dør, bredde', def: 1.0, hint: 'meter (indvendig dør typisk 0,9)' },
+      { id: 'doerH', label: 'Dør, højde', def: 2.1, hint: 'meter' },
+      { id: 'fugestopTykkelse', label: 'Fugestop, tykkelse', type: 'select', options: ['10 mm', '16 mm', '20 mm'], def: '10 mm',
+        hint: 'Vælg ca. 20 % bredere end fugen. 10 mm til smal fuge, 16–20 mm til bredere fuge.' },
+      { id: 'skruerPrAabning', label: 'Karmskruer pr. åbning', def: 8, hint: 'stk — typisk 6–8 til vindue, 8–12 til dør' },
+      { id: 'spild', label: 'Spild (indfatning)', def: 10, hint: '%' },
+      { id: 'baerende', label: 'Åbningerne sidder i en bærende væg', type: 'checkbox', def: false, hint: '' },
+    ],
+    compute(v) {
+      const erYder = v.doerType === 'Udvendig dør';
+      const fugestopT = parseInt(v.fugestopTykkelse, 10);
+      const vinduePeri = 2 * (v.vindueB + v.vindueH);
+      const doerPeri = 2 * v.doerH + v.doerB;
+      const vinduerPeri = v.antalVinduer * vinduePeri;
+      const doerePeri = v.antalDoere * doerPeri;
+      // fuge/tætning kun mod vejr: vinduer + udvendige døre
+      const vejrPeri = vinduerPeri + (erYder ? doerePeri : 0);
+      // indfatning (liste pr. meter): vinduer og udvendige døre, én side.
+      // Indvendige døre bruger i stedet et færdigt gerigtsæt (begge sider).
+      const indfatPeri = vinduerPeri + (erYder ? doerePeri : 0);
+      const aabninger = v.antalVinduer + v.antalDoere;
+      const fugeRuller = ceil(vejrPeri / 20);
+      const skruer = aabninger * v.skruerPrAabning;
+      const indfatLbm = indfatPeri * (1 + v.spild / 100);
+      return [
+        { name: 'Fugeisolering (Knauf fugefilt 25×60)', amount: fugeRuller, unit: 'ruller', note: `${fmt(vejrPeri)} m fuge`, formula: `${fmt(vejrPeri)} m omkreds mod vejr ÷ 20 m pr. rulle${erYder ? '' : ' (indvendige døre fuges ikke)'}`,
+          defaultPrices: { davidsen: 100, bygma: 112.62, stark: 239 } },
+        { name: `Fugestop (bagstop Ø${fugestopT})`, amount: ceil(vejrPeri / 5), unit: 'ruller', note: `${fmt(vejrPeri)} m fuge`, formula: `${fmt(vejrPeri)} m omkreds${erYder ? ' (vinduer og udvendige døre)' : ' (kun vinduer)'} ÷ 5 m pr. rulle`,
+          defaultPrices: PRICES.fugestopPrRulle[fugestopT] },
+        { name: 'Karmskruer 7,5×132', amount: skruer, unit: 'stk', note: `${aabninger} åbninger`, formula: `${aabninger} åbninger × ${v.skruerPrAabning} skruer`,
+          defaultPrices: { davidsen: 1.65, bygma: 1.70, stark: 1.09 } },
+        { name: 'Indfatning/gerigter (indvendig)', amount: indfatLbm, unit: 'lbm', formula: `${fmt(indfatPeri)} m (vinduer${erYder ? ' og udvendige døre' : ''}, én side) + ${v.spild}% spild`,
+          defaultPrices: { davidsen: 25, bygma: 13.24, stark: 38.95 } },
+        { name: 'Gerigtsæt indvendig dør (Swedoor Flex hvid 65 mm)', amount: erYder ? 0 : v.antalDoere * 2, unit: 'sæt', note: erYder ? 'kun til indvendige døre' : `${v.antalDoere} dør(e) × 2 sider`,
+          formula: erYder ? `Vælg "Indvendig dør" for at få gerigtsæt med` : `2 sæt pr. dør (ét på hver side), til Swedoor Flex-karm`,
+          defaultPrices: { davidsen: 595, bygma: 987.50, stark: 939 } },
+      ];
+    },
+    warnings(v) {
+      const w = [];
+      if (v.baerende) {
+        w.push(`Nye eller udvidede åbninger i en bærende væg kræver en overligger, dimensioneret af en konstruktør efter BR18 — det regner denne beregner ikke på. Tjek også om ændringen kræver byggetilladelse eller anmeldelse hos kommunen.`);
+      }
+      return w;
+    },
+  },
+};
+
+let current = 'terrasse';
+
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  Object.entries(CALCS).forEach(([key, def]) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (key === current ? ' active' : '');
+    btn.textContent = def.title;
+    btn.onclick = () => { current = key; renderAll(); };
+    tabs.appendChild(btn);
+  });
+}
+
+const selectedMaterial = {};
+
+function currentMaterial() {
+  const def = CALCS[current];
+  if (!def.materials) return null;
+  if (!selectedMaterial[current]) selectedMaterial[current] = def.materials[0].key;
+  return def.materials.find(m => m.key === selectedMaterial[current]);
+}
+
+function renderMaterialSelect() {
+  const def = CALCS[current];
+  const row = document.getElementById('material-row');
+  if (!def.materials) { row.style.display = 'none'; return; }
+  row.style.display = '';
+  const sel = document.getElementById('material-select');
+  sel.innerHTML = def.materials.map(m => `<option value="${m.key}">${m.label}</option>`).join('');
+  sel.value = selectedMaterial[current] || def.materials[0].key;
+  sel.onchange = () => {
+    selectedMaterial[current] = sel.value;
+    renderForm();
+  };
+}
+
+function renderForm() {
+  const def = CALCS[current];
+  document.getElementById('form-title').textContent = def.title;
+  renderMaterialSelect();
+  const mat = currentMaterial();
+  const fields = document.getElementById('form-fields');
+  fields.innerHTML = '';
+  def.fields.forEach(f => {
+    const val = (mat && mat.overrides && f.id in mat.overrides) ? mat.overrides[f.id] : f.def;
+    const wrap = document.createElement('div');
+    wrap.className = 'field';
+    if (f.type === 'checkbox') {
+      wrap.innerHTML = `
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <input type="checkbox" id="f-${f.id}" ${val ? 'checked' : ''} style="width:auto;">
+          ${f.label}
+        </label>
+      `;
+    } else if (f.type === 'select') {
+      wrap.innerHTML = `
+        <label>${f.label}</label>
+        <select id="f-${f.id}">${f.options.map(o => `<option value="${o}"${o === val ? ' selected' : ''}>${o}</option>`).join('')}</select>
+        <div class="hint">${f.hint}</div>
+      `;
+    } else {
+      wrap.innerHTML = `
+        <label>${f.label}</label>
+        <input type="number" step="any" id="f-${f.id}" value="${val}">
+        <div class="hint">${f.hint}</div>
+      `;
+    }
+    fields.appendChild(wrap);
+  });
+  fields.querySelectorAll('input, select').forEach(i => i.addEventListener('input', renderResults));
+  renderResults();
+}
+
+function readValues() {
+  const def = CALCS[current];
+  const v = {};
+  def.fields.forEach(f => {
+    const el = document.getElementById(`f-${f.id}`);
+    if (f.type === 'checkbox') v[f.id] = el.checked;
+    else if (f.type === 'select') v[f.id] = el.value;
+    else v[f.id] = parseFloat(el.value) || 0;
+  });
+  return v;
+}
+
+// priceState[calcKey][store] = [priceString, ...] indexed by row order
+// priceManual[calcKey][store] = [bool, ...] — true once the user has edited that cell
+const priceState = {};
+const priceManual = {};
+let lastRows = [];
+
+function ensureState(calcKey) {
+  if (!priceState[calcKey]) priceState[calcKey] = {};
+  if (!priceManual[calcKey]) priceManual[calcKey] = {};
+  STORES.forEach(s => {
+    if (!priceState[calcKey][s]) priceState[calcKey][s] = [];
+    if (!priceManual[calcKey][s]) priceManual[calcKey][s] = [];
+  });
+}
+
+function recalcTotals() {
+  const grand = { davidsen: 0, bygma: 0, stark: 0 };
+  lastRows.forEach((r, i) => {
+    STORES.forEach(s => {
+      const price = parseFloat(priceState[current][s][i]) || 0;
+      const lineTotal = r.amount * price;
+      grand[s] += lineTotal;
+      const cell = document.getElementById(`linetotal-${s}-${i}`);
+      if (cell) cell.textContent = price ? `= ${fmt(lineTotal)} kr.` : '';
+    });
+  });
+  STORES.forEach(s => {
+    document.getElementById(`grand-total-${s}`).textContent = `${fmt(grand[s])} kr.`;
+  });
+}
+
+function renderResults() {
+  const def = CALCS[current];
+  const v = readValues();
+  const mat = currentMaterial();
+  const rows = def.compute(v, mat ? mat.key : null);
+  lastRows = rows;
+  ensureState(current);
+
+  // Auto-fill from researched defaults unless the user has typed their own price in
+  // that cell. Always resync (including clearing to blank) when not manually edited,
+  // so a stale value from a different material/row-shape doesn't linger.
+  rows.forEach((r, i) => {
+    STORES.forEach(s => {
+      const dp = r.defaultPrices ? r.defaultPrices[s] : null;
+      if (!priceManual[current][s][i]) {
+        priceState[current][s][i] = dp != null ? String(Math.round(dp * 100) / 100) : '';
+      }
+    });
+  });
+
+  const body = document.getElementById('results-body');
+  body.innerHTML = '';
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const noteHtml = r.note ? `<span class="note">${r.note}</span>` : '';
+    const priceCells = STORES.map(s => {
+      const manual = priceManual[current][s][i];
+      const dp = r.defaultPrices ? r.defaultPrices[s] : null;
+      const isAuto = !manual && dp != null;
+      const val = priceState[current][s][i] ?? '';
+      const autoClass = isAuto ? ' auto-price' : '';
+      const autoTag = isAuto ? `<span class="auto-tag" title="Indikativ pris, researchet hos ${STORE_LABEL[s]}">● ca.</span>` : '';
+      const url = dp != null ? linkFor(r.name, s) : null;
+      const linkHtml = url ? `<a class="prod-link" href="${url}" target="_blank" rel="noopener" title="Åbn varen hos ${STORE_LABEL[s]}">Se varen ↗</a>` : '';
+      return `<td class="price"><input type="number" step="any" min="0" placeholder="kr." value="${val}" id="p-${s}-${i}" data-store="${s}" data-row="${i}" class="${autoClass}">${autoTag}${linkHtml}<span class="line-total" id="linetotal-${s}-${i}"></span></td>`;
+    }).join('');
+    tr.innerHTML = `
+      <td class="name">${r.name}${noteHtml}</td>
+      <td class="qty">${fmt(r.amount)} ${r.unit}</td>
+      ${priceCells}
+      <td class="formula">${r.formula}</td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input[data-store]').forEach(input => {
+    input.addEventListener('input', () => {
+      const s = input.dataset.store;
+      const i = Number(input.dataset.row);
+      priceManual[current][s][i] = true;
+      priceState[current][s][i] = input.value;
+      input.classList.remove('auto-price');
+      const tag = input.nextElementSibling;
+      if (tag && tag.classList.contains('auto-tag')) tag.remove();
+      recalcTotals();
+    });
+  });
+  recalcTotals();
+  document.getElementById('copy-status').textContent = '';
+
+  const warnBox = document.getElementById('warn-box');
+  const warnings = def.warnings ? def.warnings(v) : [];
+  if (warnings.length) {
+    warnBox.className = 'warn-callout show';
+    warnBox.innerHTML = `<b>⚠ Tjek med en fagperson</b><ul>${warnings.map(w => `<li>${w}</li>`).join('')}</ul>`;
+  } else {
+    warnBox.className = 'warn-callout';
+    warnBox.innerHTML = '';
+  }
+}
+
+function renderAll() {
+  renderTabs();
+  renderForm();
+}
+
+document.getElementById('copy-btn').onclick = async () => {
+  const def = CALCS[current];
+  const mat = currentMaterial();
+  const titleLine = mat ? `${def.title} — ${mat.label}` : def.title;
+  const grand = { davidsen: 0, bygma: 0, stark: 0 };
+  const lines = lastRows.map((r, i) => {
+    const priceBits = STORES.map(s => {
+      const price = parseFloat(priceState[current][s][i]) || 0;
+      grand[s] += r.amount * price;
+      return price ? `${STORE_LABEL[s]} ${fmt(price)} kr.` : null;
+    }).filter(Boolean).join(' · ');
+    const priceText = priceBits ? `  —  ${priceBits}` : '';
+    return `${r.name}: ${fmt(r.amount)} ${r.unit}${priceText}  (${r.formula})`;
+  });
+  const totalsText = STORES.map(s => `${STORE_LABEL[s]}: ${fmt(grand[s])} kr.`).join('\n');
+  const text = `Materialeestimat — ${titleLine}\n` + lines.join('\n') +
+    `\n\nSamlet materialepris:\n${totalsText}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    document.getElementById('copy-status').textContent = 'Kopieret ✓';
+  } catch (e) {
+    document.getElementById('copy-status').textContent = 'Kunne ikke kopiere automatisk — marker og kopiér teksten manuelt.';
+  }
+};
+
+document.getElementById('list-btn').onclick = () => {
+  const def = CALCS[current];
+  const mat = currentMaterial();
+  let list = {};
+  try { list = JSON.parse(localStorage.getItem('indkoebsliste') || '{}'); } catch (e) {}
+  const rows = lastRows.filter(r => r.amount > 0).map(r => ({ name: r.name, amount: r.amount, unit: r.unit }));
+  // Tilføjes pr. fane, så en ny beregning af samme projekt erstatter den gamle
+  list[current] = { title: mat ? `${def.title} — ${mat.label}` : def.title, rows };
+  localStorage.setItem('indkoebsliste', JSON.stringify(list));
+  document.getElementById('copy-status').textContent = `Tilføjet til indkøbslisten (${rows.length} varer) ✓`;
+};
+
+function grandTotalFor(store) {
+  return lastRows.reduce((sum, r, i) => {
+    const price = parseFloat(priceState[current][store][i]) || 0;
+    return sum + r.amount * price;
+  }, 0);
+}
+
+document.querySelectorAll('.send-btn').forEach(btn => {
+  btn.onclick = () => {
+    const store = btn.dataset.store;
+    const def = CALCS[current];
+    const mat = currentMaterial();
+    const total = grandTotalFor(store);
+    if (!total) {
+      document.getElementById('send-status').textContent = `Ingen pris udfyldt for ${STORE_LABEL[store]} endnu.`;
+      return;
+    }
+    const titleLine = mat ? `${def.title} (${mat.label})` : def.title;
+    const desc = `Materialer — ${titleLine} — i alt ${fmt(total)} kr. (${STORE_LABEL[store]}-priser)`;
+    localStorage.setItem('pendingTilbudLine', JSON.stringify({ desc, price: Math.round(total * 100) / 100 }));
+    window.location.href = 'index.html';
+  };
+});
+
+renderAll();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
+</html>

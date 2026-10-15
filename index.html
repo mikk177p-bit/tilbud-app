@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3B2A1E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tømrer">
+<title>Tilbud — Kalles Tømrerfirma</title>
+<style>
+  :root {
+    --walnut: #3B2A1E;
+    --cream: #F4E9D8;
+    --rust: #B5652D;
+    --ink: #2a2118;
+    --ink-dim: #6b5d4f;
+    --line: #ddd0ba;
+    --bg: #faf6ef;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    background: var(--walnut);
+    color: var(--cream);
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  header .sub { font-size: 12.5px; opacity: 0.85; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; grid-template-columns: 1.4fr 1fr; }
+  @media (max-width: 800px) { .wrap { grid-template-columns: 1fr; padding: 14px; } header { padding: 14px; } }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 20px 22px;
+  }
+  .card h2 { margin: 0 0 14px; font-size: 16px; color: var(--walnut); }
+  label { display: block; font-size: 12.5px; color: var(--ink-dim); margin: 10px 0 4px; }
+  input, textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--ink);
+  }
+  textarea { resize: vertical; min-height: 54px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  table#lines { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  table#lines th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-dim); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  table#lines td { padding: 4px 6px; vertical-align: top; }
+  table#lines input { font-size: 13.5px; padding: 6px 8px; }
+  .qty-input { width: 64px; }
+  .price-input { width: 90px; }
+  .rm-btn { background: none; border: none; color: var(--rust); font-size: 16px; cursor: pointer; padding: 4px 6px; }
+  .add-line {
+    margin-top: 10px;
+    background: var(--cream);
+    border: 1px solid var(--line);
+    color: var(--walnut);
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .add-line:hover { background: #ecdfc6; }
+
+  .totals { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 14px; }
+  .totals .row { display: flex; justify-content: space-between; padding: 3px 0; color: var(--ink-dim); }
+  .totals .row.total { color: var(--walnut); font-weight: 700; font-size: 17px; border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 8px; }
+
+  .submit-btn {
+    margin-top: 18px;
+    width: 100%;
+    background: var(--rust);
+    color: #fff;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .submit-btn:hover { background: #a1571f; }
+  .submit-btn:disabled { opacity: 0.6; cursor: default; }
+
+  #status { margin-top: 12px; font-size: 13.5px; padding: 10px 12px; border-radius: 6px; display: none; }
+  #status.ok { display: block; background: #e7f3ea; color: #275c37; border: 1px solid #bfe0c8; }
+  #status.err { display: block; background: #fbe8e4; color: #8a3420; border: 1px solid #f1c3b7; }
+  #status a { color: inherit; font-weight: 700; }
+
+  ul#history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  ul#history li {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  ul#history .meta { font-size: 12px; color: var(--ink-dim); }
+  ul#history .num { font-weight: 700; color: var(--walnut); font-size: 13.5px; }
+  ul#history a.dl { font-size: 12.5px; color: var(--rust); text-decoration: none; font-weight: 600; white-space: nowrap; }
+  ul#history a.dl:hover { text-decoration: underline; }
+  .empty { color: var(--ink-dim); font-size: 13.5px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 id="company-name">Kalles Tømrerfirma</h1>
+    <div class="sub">Tilbud-app</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+    <a href="materialer.html" style="color:var(--cream); font-size:13px; text-decoration:none; border:1px solid rgba(244,233,216,0.4); padding:6px 12px; border-radius:5px;">Materialeberegner →</a>
+    <a href="indkoebsliste.html" style="color:var(--cream); font-size:13px; text-decoration:none; border:1px solid rgba(244,233,216,0.4); padding:6px 12px; border-radius:5px;">Indkøbsliste →</a>
+    <a href="korsel.html" style="color:var(--cream); font-size:13px; text-decoration:none; border:1px solid rgba(244,233,216,0.4); padding:6px 12px; border-radius:5px;">Kørsel →</a>
+    <a href="regler.html" style="color:var(--cream); font-size:13px; text-decoration:none; border:1px solid rgba(244,233,216,0.4); padding:6px 12px; border-radius:5px;">Tømrerregler →</a>
+    <div class="sub" id="next-number"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Nyt tilbud</h2>
+
+    <label>Kundenavn</label>
+    <input id="cust-name" placeholder="Jens Hansen">
+
+    <label>Adresse</label>
+    <input id="cust-address" placeholder="Skovvej 12, 5000 Odense C">
+
+    <div class="row2">
+      <div>
+        <label>Email</label>
+        <input id="cust-email" placeholder="jens@example.dk">
+      </div>
+      <div>
+        <label>Telefon</label>
+        <input id="cust-phone" placeholder="12 34 56 78">
+      </div>
+    </div>
+
+    <label style="margin-top:18px;">Linjer</label>
+    <table id="lines">
+      <thead>
+        <tr><th>Beskrivelse</th><th>Antal</th><th>Enhed</th><th>Stk. pris</th><th></th></tr>
+      </thead>
+      <tbody id="lines-body"></tbody>
+    </table>
+    <button type="button" class="add-line" id="add-line">+ Tilføj linje</button>
+
+    <label style="margin-top:16px;">Bemærkninger (valgfrit)</label>
+    <textarea id="note" placeholder="F.eks. forventet udførelsesperiode, forbehold osv."></textarea>
+
+    <div class="totals">
+      <div class="row"><span>Subtotal</span><span id="t-subtotal">0,00 kr.</span></div>
+      <div class="row"><span id="t-vat-label">Moms (25%)</span><span id="t-vat">0,00 kr.</span></div>
+      <div class="row total"><span>Total</span><span id="t-total">0,00 kr.</span></div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn">Opret tilbud og lav PDF</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>Tidligere tilbud</h2>
+    <ul id="history"><li class="empty">Indlæser…</li></ul>
+  </div>
+  <div class="card">
+    <details>
+      <summary style="cursor:pointer; font-weight:700; color:var(--walnut);">Firmaoplysninger (kommer på tilbuddet)</summary>
+      <div class="row2" id="company-fields" style="margin-top:12px;"></div>
+      <button type="button" class="add-line" id="save-company" style="margin-top:12px;">Gem firmaoplysninger</button>
+      <span id="company-status" style="font-size:12.5px; margin-left:8px; color:var(--ink-dim);"></span>
+    </details>
+  </div>
+</div>
+
+<script src="lib/jspdf.umd.min.js"></script>
+<script>
+let company = { vat_pct: 25 };
+
+function fmt(n) {
+  return n.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kr.';
+}
+
+function addLineRow(desc = '', qty = 1, unit = 'stk', price = 0) {
+  const tbody = document.getElementById('lines-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input class="l-desc" value="${desc}" placeholder="Fx levering og montering af køkkenbord"></td>
+    <td><input class="l-qty qty-input" type="number" step="any" value="${qty}"></td>
+    <td><input class="l-unit" style="width:60px" value="${unit}"></td>
+    <td><input class="l-price price-input" type="number" step="any" value="${price}"></td>
+    <td><button type="button" class="rm-btn" title="Fjern linje">✕</button></td>
+  `;
+  tr.querySelector('.rm-btn').onclick = () => { tr.remove(); recalc(); };
+  tr.querySelectorAll('input').forEach(i => i.addEventListener('input', recalc));
+  tbody.appendChild(tr);
+}
+
+function readLines() {
+  return [...document.querySelectorAll('#lines-body tr')].map(tr => ({
+    desc: tr.querySelector('.l-desc').value.trim(),
+    qty: parseFloat(tr.querySelector('.l-qty').value) || 0,
+    unit: tr.querySelector('.l-unit').value.trim() || 'stk',
+    price: parseFloat(tr.querySelector('.l-price').value) || 0,
+  })).filter(l => l.desc);
+}
+
+function recalc() {
+  const lines = readLines();
+  const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
+  const vatPct = company.vat_pct ?? 25;
+  const vat = subtotal * vatPct / 100;
+  document.getElementById('t-subtotal').textContent = fmt(subtotal);
+  document.getElementById('t-vat-label').textContent = `Moms (${vatPct}%)`;
+  document.getElementById('t-vat').textContent = fmt(vat);
+  document.getElementById('t-total').textContent = fmt(subtotal + vat);
+}
+
+const DEFAULT_COMPANY = {
+  name: 'Kalles Tømrerfirma', owner: 'Mikkel Nielsen', address: '', postal: '', email: '', phone: '',
+  cvr: '', bank_reg: '', bank_account: '', vat_pct: 25, valid_days: 30,
+  terms: 'Tilbuddet er gældende i angivne periode. Priser er ekskl. materialer, medmindre andet er angivet. Betaling 8 dage netto efter fakturering.',
+};
+const COMPANY_FIELDS = [
+  ['name', 'Firmanavn'], ['owner', 'Ejer'], ['address', 'Adresse'], ['postal', 'Postnr. og by'],
+  ['phone', 'Telefon'], ['email', 'Email'], ['cvr', 'CVR'], ['bank_reg', 'Bank reg.nr.'],
+  ['bank_account', 'Bank kontonr.'], ['vat_pct', 'Moms %'], ['valid_days', 'Tilbud gyldigt (dage)'],
+];
+
+function loadCompany() {
+  try { company = Object.assign({}, DEFAULT_COMPANY, JSON.parse(localStorage.getItem('company') || '{}')); }
+  catch (e) { company = Object.assign({}, DEFAULT_COMPANY); }
+  document.getElementById('company-name').textContent = company.name || 'Tilbud';
+  renderCompanyForm();
+  recalc();
+}
+
+function renderCompanyForm() {
+  const box = document.getElementById('company-fields');
+  box.innerHTML = COMPANY_FIELDS.map(([k, label]) =>
+    `<div><label>${label}</label><input data-ck="${k}" value="${String(company[k] ?? '').replace(/"/g, '&quot;')}"></div>`).join('') +
+    `<div style="grid-column:1/-1"><label>Vilkår (står nederst på tilbuddet)</label><textarea data-ck="terms">${company.terms || ''}</textarea></div>`;
+}
+
+document.getElementById('save-company').onclick = () => {
+  const c = {};
+  document.querySelectorAll('[data-ck]').forEach(el => {
+    const k = el.dataset.ck;
+    c[k] = (k === 'vat_pct' || k === 'valid_days') ? (parseFloat(el.value) || DEFAULT_COMPANY[k]) : el.value.trim();
+  });
+  localStorage.setItem('company', JSON.stringify(c));
+  loadCompany();
+  document.getElementById('company-status').textContent = 'Gemt ✓';
+};
+
+function getHistory() { try { return JSON.parse(localStorage.getItem('tilbudHistory') || '[]'); } catch (e) { return []; } }
+function setHistory(h) { localStorage.setItem('tilbudHistory', JSON.stringify(h)); }
+
+function tilbudTotal(t) {
+  const sub = t.lines.reduce((s, l) => s + (parseFloat(l.qty) || 0) * (parseFloat(l.price) || 0), 0);
+  return sub * (1 + (t.vat_pct ?? 25) / 100);
+}
+
+function nextNumber(history) {
+  const year = new Date().getFullYear();
+  const n = history.filter(h => h.number.startsWith(`${year}-`)).length + 1;
+  return `${year}-${String(n).padStart(3, '0')}`;
+}
+
+function loadHistory() {
+  const list = document.getElementById('history');
+  const items = getHistory();
+  document.getElementById('next-number').textContent = `Næste nr.: ${nextNumber(items)}`;
+  if (!items.length) { list.innerHTML = '<li class="empty">Ingen tilbud oprettet endnu.</li>'; return; }
+  list.innerHTML = '';
+  items.slice().reverse().forEach(it => {
+    const li = document.createElement('li');
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    li.innerHTML = `
+      <div>
+        <div class="num">${esc(it.number)} — ${esc(it.customer.name || 'Uden navn')}</div>
+        <div class="meta">${esc(it.date)} · ${fmt(tilbudTotal(it))}</div>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <a class="dl" href="#" data-open="${esc(it.number)}">Åbn PDF</a>
+        <a class="dl" href="#" data-share="${esc(it.number)}">Del</a>
+      </div>`;
+    list.appendChild(li);
+  });
+  list.querySelectorAll('[data-open]').forEach(a => a.onclick = e => { e.preventDefault(); openPdf(getHistory().find(h => h.number === a.dataset.open)); });
+  list.querySelectorAll('[data-share]').forEach(a => a.onclick = e => { e.preventDefault(); sharePdf(getHistory().find(h => h.number === a.dataset.share)); });
+}
+
+// ---------- PDF (jsPDF, laves på telefonen) ----------
+const mm = (n) => n; // jsPDF arbejder i mm
+function money(n) {
+  return n.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kr.';
+}
+
+function buildPdf(t) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 20, R = W - M;
+  const WALNUT = [59, 42, 30], CREAM = [244, 233, 216], GREY = [90, 79, 67];
+  const c = t.company;
+
+  doc.setFillColor(...WALNUT); doc.rect(0, 0, W, 34, 'F');
+  doc.setTextColor(...CREAM); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+  doc.text(c.name || '', M, 17);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  const bits = [c.address, c.postal, c.phone, c.email, c.cvr ? 'CVR ' + c.cvr : ''].filter(Boolean);
+  doc.text(bits.join('  ·  '), M, 24);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.text('TILBUD', R, 17, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.text(`Nr. ${t.number}`, R, 24, { align: 'right' });
+
+  let y = 47;
+  doc.setTextColor(...GREY); doc.setFontSize(9);
+  doc.text(`Dato: ${t.date}`, M, y); doc.text(`Gyldig til: ${t.valid_until}`, M + 60, y);
+  y += 10;
+
+  doc.setTextColor(...WALNUT); doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('Til', M, y); y += 5.5;
+  doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
+  [t.customer.name, t.customer.address, t.customer.email, t.customer.phone].filter(Boolean).forEach(l => { doc.text(l, M, y); y += 5; });
+  y += 6;
+
+  const xQty = R - 70, xPrice = R - 25;
+  const header = () => {
+    doc.setFillColor(...WALNUT); doc.rect(M, y - 4.5, R - M, 7, 'F');
+    doc.setTextColor(...CREAM); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.text('Beskrivelse', M + 2, y); doc.text('Antal', xQty, y);
+    doc.text('Stk. pris', xPrice, y, { align: 'right' }); doc.text('I alt', R, y, { align: 'right' });
+    y += 8;
+  };
+  header();
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+  let subtotal = 0;
+  t.lines.forEach((l, i) => {
+    const qty = parseFloat(l.qty) || 0, price = parseFloat(l.price) || 0, sum = qty * price;
+    subtotal += sum;
+    const desc = doc.splitTextToSize(l.desc, xQty - M - 6);
+    const h = Math.max(6.5, desc.length * 4.6 + 2);
+    if (y + h > 262) { doc.addPage(); y = 25; header(); doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); }
+    if (i % 2 === 1) { doc.setFillColor(244, 240, 234); doc.rect(M, y - 4.2, R - M, h, 'F'); }
+    doc.setTextColor(0, 0, 0);
+    doc.text(desc, M + 2, y);
+    doc.text(`${qty.toLocaleString('da-DK')} ${l.unit || 'stk'}`, xQty, y);
+    doc.text(money(price), xPrice, y, { align: 'right' });
+    doc.text(money(sum), R, y, { align: 'right' });
+    y += h;
+  });
+
+  y += 2; doc.setDrawColor(217, 205, 182); doc.line(M, y, R, y); y += 7;
+  const vatPct = t.vat_pct ?? 25, vat = subtotal * vatPct / 100;
+  [['Subtotal', subtotal, false], [`Moms (${vatPct}%)`, vat, false], ['Total', subtotal + vat, true]].forEach(([label, val, bold]) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(bold ? 10.5 : 9.5);
+    doc.setTextColor(...(bold ? WALNUT : GREY));
+    doc.text(label, xPrice, y, { align: 'right' }); doc.text(money(val), R, y, { align: 'right' }); y += 6.5;
+  });
+
+  y += 6;
+  if (t.note) {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...WALNUT); doc.text('Bemærkninger', M, y); y += 5;
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0);
+    doc.splitTextToSize(t.note, R - M).forEach(l => { doc.text(l, M, y); y += 4.8; });
+    y += 4;
+  }
+  if (c.terms) {
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(...GREY);
+    doc.splitTextToSize(c.terms, R - M).forEach(l => { doc.text(l, M, y); y += 4.2; });
+  }
+  const bank = [c.bank_reg ? 'Reg. ' + c.bank_reg : '', c.bank_account ? 'Konto ' + c.bank_account : ''].filter(Boolean);
+  if (bank.length) { doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(181, 101, 45); doc.text(bank.join('  ·  '), M, 284); }
+  return doc;
+}
+
+function pdfBlob(t) { return buildPdf(t).output('blob'); }
+
+function openPdf(t) {
+  const url = URL.createObjectURL(pdfBlob(t));
+  const w = window.open(url, '_blank');
+  if (!w) location.href = url;
+}
+
+async function sharePdf(t) {
+  const file = new File([pdfBlob(t)], `Tilbud-${t.number}.pdf`, { type: 'application/pdf' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: `Tilbud ${t.number}` }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  openPdf(t);
+}
+
+document.getElementById('add-line').onclick = () => addLineRow();
+
+document.getElementById('submit-btn').onclick = () => {
+  const btn = document.getElementById('submit-btn');
+  const status = document.getElementById('status');
+  const lines = readLines();
+  const custName = document.getElementById('cust-name').value.trim();
+  if (!custName) { status.className = 'err'; status.textContent = 'Udfyld kundenavn, før du opretter tilbuddet.'; return; }
+  if (!lines.length) { status.className = 'err'; status.textContent = 'Tilføj mindst én linje.'; return; }
+
+  const history = getHistory();
+  const today = new Date();
+  const valid = new Date(today.getTime() + (parseInt(company.valid_days, 10) || 30) * 86400000);
+  const iso = d => d.toISOString().slice(0, 10);
+  const t = {
+    number: nextNumber(history), date: iso(today), valid_until: iso(valid),
+    customer: {
+      name: custName,
+      address: document.getElementById('cust-address').value.trim(),
+      email: document.getElementById('cust-email').value.trim(),
+      phone: document.getElementById('cust-phone').value.trim(),
+    },
+    lines, note: document.getElementById('note').value.trim(),
+    vat_pct: company.vat_pct ?? 25, company: Object.assign({}, company),
+  };
+  try {
+    history.push(t); setHistory(history);
+    status.className = 'ok';
+    status.innerHTML = `Tilbud ${t.number} oprettet. <a href="#" id="open-new">Åbn PDF</a> · <a href="#" id="share-new">Del</a>`;
+    status.style.display = 'block';
+    document.getElementById('open-new').onclick = e => { e.preventDefault(); openPdf(t); };
+    document.getElementById('share-new').onclick = e => { e.preventDefault(); sharePdf(t); };
+    loadHistory();
+  } catch (e) {
+    status.className = 'err'; status.textContent = 'Kunne ikke gemme tilbuddet: ' + e;
+  }
+};
+
+
+function loadPendingFromMaterialeberegner() {
+  let pending = null;
+  try {
+    const raw = localStorage.getItem('pendingTilbudLine');
+    if (raw) pending = JSON.parse(raw);
+  } catch (e) {}
+  if (pending && pending.desc) {
+    localStorage.removeItem('pendingTilbudLine');
+    addLineRow(pending.desc, 1, 'stk', pending.price || 0);
+    const status = document.getElementById('status');
+    status.className = 'ok';
+    status.textContent = 'Materialepris hentet fra materialeberegneren og sat ind som linje.';
+    return true;
+  }
+  return false;
+}
+
+if (!loadPendingFromMaterialeberegner()) {
+  addLineRow();
+}
+loadCompany();
+loadHistory();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
+</html>

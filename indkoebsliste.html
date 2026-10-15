@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3B2A1E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tømrer">
+<title>Indkøbsliste — Kalles Tømrerfirma</title>
+<style>
+  :root { --walnut:#3B2A1E; --cream:#F4E9D8; --rust:#B5652D; --ink:#2a2118; --ink-dim:#6b5d4f; --line:#ddd0ba; --bg:#faf6ef; --card:#fff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--walnut); color:var(--cream); padding:18px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  header h1 { margin:0; font-size:20px; font-weight:700; }
+  header div { display:flex; gap:10px; flex-wrap:wrap; }
+  header a { color:var(--cream); font-size:13px; text-decoration:none; border:1px solid rgba(244,233,216,0.4); padding:6px 12px; border-radius:5px; }
+  header a:hover { background:rgba(244,233,216,0.12); }
+  .wrap { max-width:900px; margin:0 auto; padding:24px; }
+  .bar { display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:18px; }
+  label { display:block; font-size:12.5px; color:var(--ink-dim); margin-bottom:4px; }
+  select { padding:8px 10px; border:1px solid var(--line); border-radius:5px; font-size:14px; background:#fff; min-width:180px; }
+  button { background:var(--cream); border:1px solid var(--line); color:var(--walnut); font-weight:600; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:13px; }
+  button:hover { background:#ecdfc6; }
+  button.danger { color:#8a3420; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px 20px; margin-bottom:16px; }
+  .card h2 { margin:0 0 10px; font-size:15.5px; color:var(--walnut); display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; min-width:520px; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-dim); padding:6px 8px; border-bottom:1px solid var(--line); }
+  td { padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.qty { font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  td .sub { display:block; font-size:11.5px; color:var(--ink-dim); margin-top:2px; }
+  td .missing { color:#8a3420; font-style:italic; }
+  td a { color:var(--rust); font-size:12px; text-decoration:none; white-space:nowrap; }
+  td a:hover { text-decoration:underline; }
+  .empty { color:var(--ink-dim); font-style:italic; }
+  #status { font-size:12.5px; color:var(--ink-dim); }
+  .note { font-size:12.5px; color:var(--ink-dim); margin-top:14px; line-height:1.5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Indkøbsliste</h1>
+  <div>
+    <a href="materialer.html">← Materialeberegner</a>
+    <a href="index.html">Tilbud</a>
+  </div>
+</header>
+<div class="wrap">
+  <div class="bar">
+    <div><label>Butik</label>
+      <select id="store">
+        <option value="davidsen">Davidsen</option>
+        <option value="bygma">Bygma</option>
+        <option value="stark">Stark</option>
+      </select>
+    </div>
+    <button id="copy">Kopiér liste til sælger</button>
+    <button id="clear" class="danger">Ryd hele listen</button>
+    <span id="status"></span>
+  </div>
+  <div id="lists"></div>
+  <div class="note">Varenavnene er de navne, butikkerne selv bruger på deres hjemmeside. Antal er regnet ud i materialeberegneren; skruer og lignende er omregnet til hele pakker, og indfatning til hele længder. Tjek altid længde, dimension og lager med sælgeren — navnene er fundet på butikkernes sider, og de ændrer sig.</div>
+</div>
+<script>
+// Butikkernes egne produktnavne pr. varelinje. pack = stk pr. pakke, len = meter pr. stykke (til omregning af lbm).
+const N = [
+  { re: /^Terrassebrædder/, d: 'Terrassebrædder glat fyr trykimprægneret 32 x 125 mm x 3,6 m', b: 'SOLID Terrassebrædder trykimprægneret 28x120mm', s: 'RAW Fyr Seksta Terrassebrædder Trykimprægneret 32x125 mm Længde 4200 mm', obs: 'Beregnet i 4,2 m brædder — tjek længden hos Davidsen/Bygma.' },
+  { re: /^(Bærebjælker|Vandrette bærelægter)/, d: 'Reglar fyr trykimprægneret NTR klasse A/B 47x100 mm', b: 'SOLID Reglar 45x95mm i Trykimprægneret Træ', s: 'RAW Fyr Seksta Trykimprægneret 50x100 mm Længde 3600 mm' },
+  { re: /^Terrasseskruer/, d: 'Fischer FTS-ST terrasseskrue 4,2x45 A4 220 stk', b: 'Bygma Terrasseskrue A4 TX20 - 4,2x45mm - 200 stk/pk', s: 'NKT FASTENERS Terrasseskrue Rustfri Kv. A4 TX20 Antal 170 Diameter 4,2 mm Længde 55 mm', pack: { d: 220, b: 200, s: 170 } },
+  { re: /^Stolper \(/, d: 'Tømmer ru stolper trykimprægneret 97 x 97 mm x 2,1 m', b: null, s: 'RAW Stolpe Trykimprægneret 97x97 mm Længde 2400 mm' },
+  { re: /^Stolpebeton/, d: 'Skalflex stolpebeton 20 kg', b: 'SOLID Stolpebeton 20 kg', s: 'RAW Stolpebeton Størrelse 20 kg' },
+  { re: /^Planker/, d: 'Hegnsbrædder gran trykimprægneret 19 x 100 mm x 1,8 m', b: 'Bygma Hegnsbrædder i trykimprægneret træ - 19x100mm', s: 'RAW Fyr Seksta Trykimprægneret 19x100 mm Længde 3300 mm' },
+  { re: /^(Træregler|Sål\/toprem \(C|Spær|Bjælker \()/, d: 'Reglar væg i fyr/gran 47 x125 mm x 4,2 m', b: 'SOLID reglar 45x95 mm (høvlede på 4 sider)', s: 'RAW Reglar 47x100 mm Længde 2400 mm' },
+  { re: /^Stålregler/, d: 'Knauf MR stolpe 0,46x70 mm', b: 'Fermacell CW50 Stålstolpe Stålsystem - 0,6x50mmx2,6m', s: 'GYPROC ER Standardlægte Bredde 70 mm Længde 2685 mm' },
+  { re: /^Sål\/toprem \(stål/, d: 'Knauf MSKP væg/loft 3600x0,46x70 mm', b: 'Knauf Væg/Loftskinne MSKP70 360 cm', s: null },
+  { re: /^Gipsplader/, d: 'Knauf GDS gipsplade 13x900x2400 mm', b: 'Knauf GDS gipsplader 13mm 120x240cm', s: 'RAW Standard Gips Ak Tykkelse 13 mm Bredde 900 mm Længde 2400 mm' },
+  { re: /^Isolering 95 mm rulle/, d: 'Knauf EcoBlanket 37 insulation rulle 95x960x7000 mm', b: null, s: 'KNAUF Insulation Ecobatt 37 Rulle Tykkelse 95 mm Bredde 960 mm Længde 6070 mm' },
+  { re: /^Isolering 145 mm rulle/, d: 'Knauf EcoBlanket 37 insulation rulle 145x960x4650 mm', b: 'Knauf Ecoblanket 37 rulleisolering 145 mm bredde 960 mm', s: 'KNAUF Insulation Ecobatt 37 Rulle Tykkelse 145 mm Bredde 960 mm Længde 4470 mm' },
+  { re: /^Isolering 195 mm rulle/, d: 'Knauf EcoBlanket 37 insulation rulle 195x960x3590 mm', b: 'Knauf Insulation Ecoblanket 37 Rulleisolering 195 mm isolering', s: 'KNAUF Insulation Ecobatt 37 Rulle Tykkelse 195 mm Bredde 960 mm Længde 3590 mm' },
+  { re: /^Isolering 95 mm bat/, d: 'Knauf EcoBatt 37 insulation form 95x560x980 mm', b: null, s: 'KNAUF Insulation Ecobatt 37 Formstykker Tykkelse 95 mm Bredde 560 mm Længde 980 mm' },
+  { re: /^Isolering 145 mm bat/, d: 'Knauf EcoBatt 37 insulation form 145x560x980 mm', b: 'Knauf Ecobatt 37 formstykke 145 mm 560 mm bredde', s: 'KNAUF Insulation Ecobatt 37 Formstykker Bredde 560 mm Længde 980 mm Tykkelse 145 mm' },
+  { re: /^Isolering 195 mm bat/, d: 'Knauf EcoBatt 37 insulation form 195x560x980 mm', b: 'Knauf Ecobatt 37 formstykke 195 mm 560 mm bredde', s: 'KNAUF Insulation Ecobatt 37 Formstykker Bredde 560 mm Længde 980 mm Tykkelse 195 mm' },
+  { re: /^Gipsskruer/, d: 'Fermacell® gipsskruer 3,9x30 mm 1000 stk', b: 'Bygma Hårdgipsskrue t/stål Båndet PH2 - 3,9x30mm', s: 'RAPTOR PH2 Gipsskruer til Træ - Båndede Diameter 3,9 mm Længde 35 mm Antal 1000', pack: { d: 1000, b: 1000, s: 1000 } },
+  { re: /^Undertagsplader/, d: 'NPI OSB-3, TG2 Ext. limet 22x1220x2440 mm', b: 'OSB plader 22mm - OSB3 TG2 - 122x244 cm', s: 'RAW OSB3 Gulv/Tag TG2 Tykkelse 22 mm Bredde 610 mm Længde 2440 mm', obs: 'Starks plade er 610 mm bred (halv størrelse) — der skal bruges ca. dobbelt så mange.' },
+  { re: /^Gulvplader/, d: 'Gulvspånplade 22 mm med fer/not 620x2420 mm', b: 'Spaandex Spånplade P6 K-Gulv 22mm 62x182 cm', s: 'NOVOPAN Spaandex K-Gulv EN 312 P6 DB PROF Bredde 620 mm Længde 2420 mm Tykkelse 22 mm' },
+  { re: /^Fugeisolering/, d: 'Knauf installation fugefilt 37 25x60x20000mm', b: 'Isover fugefilt 20 mm til tætning og isolering (10 m rulle — 2 pr. 20 m)', s: 'KNAUF Insulation Fugefilt 37 Tykkelse 25 mm Bredde 60 mm Længde 20 m' },
+  { re: /^Fugestop \(bagstop Ø10/, d: 'Dana fugebånd 980 5m x 10mm', b: 'Dana Lim fugebund 980 10mm 5m', s: 'RAW Fugebund Premium Diameter 10 mm Længde 5 m' },
+  { re: /^Fugestop \(bagstop Ø16/, d: 'Dana fugebånd 980 5m x 16mm', b: 'Dana Lim fugebund 980 16mm 5m', s: 'RAW Fugebund Premium Diameter 16 mm Længde 5 m' },
+  { re: /^Fugestop \(bagstop Ø20/, d: 'Dana fugebånd 980 5m x 20mm', b: 'Dana Lim fugebund 980 20mm 5m', s: 'RAW Fugebund Premium Diameter 20 mm Længde 5 m' },
+  { re: /^Karmskruer/, d: 'Spit FS-H karmankerskrue m. hoved 7,5 mm TX30 100 stk', b: 'Bygma Betonskrue TX30 - 7,5x132mm', s: 'RAW TX Karmskrue uden Hoved Antal 100 Diameter 7,5 mm Længde 132 mm', pack: { d: 100, b: 100, s: 100 } },
+  { re: /^Indfatning/, d: 'LTI 2 indfatning/gerigt i fyr/hvidmalet 14x65 mm (4,5 m)', b: 'Nova Indfatning nr. 120hf Hvid - 14x65x2200mm', s: 'RAW Indfatning Nr. 2 Fyr Hvid Højde 14 mm Bredde 65 mm Længde 2200 mm', len: { d: 4.5, b: 2.2, s: 2.2 } },
+  { re: /^Gerigtsæt/, d: 'Swedoor Flex gerigtsæt 65 mm glat hvid 2089 mm', b: 'Swedoor Gerigtsæt hvid til Flex karmsæt - 65x686x2089mm', s: 'SWEDOOR Gerigtsæt Flex Glat 65 mm Hvid Bredde 686 mm Længde 2089 mm' },
+];
+const KEY = { d: 'davidsen', b: 'bygma', s: 'stark' };
+const fmt = n => n.toLocaleString('da-DK', { maximumFractionDigits: 2 });
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const LETTER = { davidsen: 'd', bygma: 'b', stark: 's' };
+function resolve(row, store) {
+  const k = LETTER[store];
+  const hit = N.find(n => n.re.test(row.name));
+  if (!hit) return { title: null, qty: `${fmt(row.amount)} ${row.unit}`, extra: '' };
+  const title = hit[k];
+  let qty = `${fmt(row.amount)} ${row.unit}`, extra = hit.obs ? hit.obs : '';
+  if (row.amount === 1) qty = qty.replace('ruller', 'rulle').replace('pakker', 'pakke');
+  if (hit.pack) { const p = hit.pack[k]; const n = Math.ceil(row.amount / p); qty = `${n} ${n === 1 ? 'pakke' : 'pakker'}`; extra = `${fmt(row.amount)} stk ÷ ${p} stk pr. pakke` + (extra ? ' · ' + extra : ''); }
+  if (hit.len) { const l = hit.len[k]; qty = `${Math.ceil(row.amount / l)} stk`; extra = `${fmt(row.amount)} lbm ÷ ${l} m pr. stk`; }
+  return { title, qty, extra };
+}
+
+function load() { try { return JSON.parse(localStorage.getItem('indkoebsliste') || '{}'); } catch (e) { return {}; } }
+
+function render() {
+  const k = document.getElementById('store').value;
+  const label = { davidsen: 'Davidsen', bygma: 'Bygma', stark: 'Stark' }[k];
+  const list = load();
+  const box = document.getElementById('lists');
+  const keys = Object.keys(list);
+  if (!keys.length) { box.innerHTML = '<div class="card empty">Listen er tom. Gå til materialeberegneren og tryk "+ Tilføj til indkøbsliste" under en beregning.</div>'; return; }
+  box.innerHTML = keys.map(key => {
+    const g = list[key];
+    const rows = g.rows.map(r => {
+      const res = resolve(r, k);
+      const nameHtml = res.title ? esc(res.title) : `<span class="missing">Ikke fundet hos ${label} — find selv en tilsvarende vare</span>`;
+      return `<tr><td>${nameHtml}<span class="sub">${esc(r.name)}${res.extra ? ' · ' + esc(res.extra) : ''}</span></td><td class="qty">${res.title ? esc(res.qty) : esc(fmt(r.amount) + ' ' + r.unit)}</td></tr>`;
+    }).join('');
+    return `<div class="card"><h2><span>${esc(g.title)}</span><button class="danger" data-del="${esc(key)}">Fjern</button></h2><div class="table-scroll"><table><thead><tr><th>Vare hos ${label}</th><th>Antal</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }).join('');
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const l = load(); delete l[b.dataset.del]; localStorage.setItem('indkoebsliste', JSON.stringify(l)); render(); });
+}
+
+document.getElementById('store').onchange = render;
+document.getElementById('clear').onclick = () => { localStorage.removeItem('indkoebsliste'); render(); };
+document.getElementById('copy').onclick = async () => {
+  const k = document.getElementById('store').value;
+  const label = { davidsen: 'Davidsen', bygma: 'Bygma', stark: 'Stark' }[k];
+  const list = load();
+  const lines = [`Materialeliste — ${label} — Kalles Tømrerfirma`];
+  Object.values(list).forEach(g => {
+    lines.push('', g.title);
+    g.rows.forEach(r => { const res = resolve(r, k); lines.push(res.title ? `- ${res.qty}: ${res.title}` : `- ${fmt(r.amount)} ${r.unit}: ${r.name} (ikke fundet hos ${label})`); });
+  });
+  try { await navigator.clipboard.writeText(lines.join('\n')); document.getElementById('status').textContent = 'Kopieret ✓'; }
+  catch (e) { document.getElementById('status').textContent = 'Kunne ikke kopiere automatisk.'; }
+};
+render();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
+</html>
