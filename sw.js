@@ -1,5 +1,5 @@
-// Offline-først: alt i appen caches ved første besøg. Hæv VERSION, når filer ændres.
-const VERSION = 'tomrer-v1';
+﻿// Offline-først: alt i appen caches ved første besøg. Hæv VERSION, når filer ændres.
+const VERSION = 'tomrer-v2';
 const FILES = [
   './', 'index.html', 'materialer.html', 'indkoebsliste.html', 'korsel.html', 'regler.html',
   'lib/jspdf.umd.min.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
